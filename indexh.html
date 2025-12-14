@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Бронирование мест в аудитории</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .screen {
+      background: #ddd;
+      height: 40px;
+      margin: 15px auto;
+      width: 60%;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #555;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .seat {
+      background-color: #444451;
+      height: 26px;
+      width: 26px;
+      margin: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .seat:hover {
+      transform: scale(1.1);
+    }
+    .seat.selected {
+      background-color: #6feaf6;
+    }
+    .seat.occupied {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+    .row {
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      display: inline-block;
+      padding: 15px 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .info {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    button {
+      margin-top: 12px;
+      padding: 6px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Бронирование мест в аудитории</h1>
+
+  <div class="screen">Доска</div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="seat"></div><span>Свободно</span>
+    </div>
+    <div class="legend-item">
+      <div class="seat selected"></div><span>Выбрано</span>
+    </div>
+    <div class="legend-item">
+      <div class="seat occupied"></div><span>Забронировано</span>
+    </div>
+  </div>
+
+  <div class="container" id="seats-container">
+    <!-- Ряды и места генерируются скриптом -->
+  </div>
+
+  <div class="info">
+    Выбрано мест: <span id="count">0</span>
+  </div>
+  <button id="confirm">Подтвердить бронь</button>
+
+  <script>
+    // Настройки аудитории
+    const ROWS = 6;       // количество рядов
+    const COLS = 8;       // мест в ряду
+    const STORAGE_KEY = 'classroomBookedSeats';
+
+    const container = document.getElementById('seats-container');
+    const countSpan = document.getElementById('count');
+    const confirmBtn = document.getElementById('confirm');
+
+    // Загружаем уже забронированные места из localStorage
+    const bookedFromStorage = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    // Генерация схемы рассадки
+    function createSeatsLayout() {
+      for (let row = 0; row < ROWS; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.classList.add('row');
+
+        for (let col = 0; col < COLS; col++) {
+          const seat = document.createElement('div');
+          seat.classList.add('seat');
+
+          const seatId = `${row}-${col}`;
+          seat.dataset.id = seatId;
+
+          // Если место есть в хранилище — помечаем как занятое
+          if (bookedFromStorage.includes(seatId)) {
+            seat.classList.add('occupied');
+          }
+
+          rowDiv.appendChild(seat);
+        }
+
+        container.appendChild(rowDiv);
+      }
+    }
+
+    createSeatsLayout();
+
+    // Обновление счётчика выбранных мест
+    function updateSelectedCount() {
+      const selectedSeats = container.querySelectorAll('.seat.selected');
+      countSpan.textContent = selectedSeats.length;
+    }
+
+    // Обработка клика по месту
+    container.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('seat')) return;
+      if (e.target.classList.contains('occupied')) return;
+
+      e.target.classList.toggle('selected');
+      updateSelectedCount();
+    });
+
+    // Подтверждение брони: выбранные места → занятые + сохранение в localStorage
+    confirmBtn.addEventListener('click', () => {
+      const selectedSeats = container.querySelectorAll('.seat.selected');
+
+      if (selectedSeats.length === 0) {
+        alert('Выберите хотя бы одно место для бронирования.');
+        return;
+      }
+
+      const newBooked = [...bookedFromStorage];
+
+      selectedSeats.forEach(seat => {
+        const id = seat.dataset.id;
+        if (!newBooked.includes(id)) {
+          newBooked.push(id);
+        }
+        seat.classList.remove('selected');
+        seat.classList.add('occupied');
+      });
+
+      // Сохраняем список забронированных мест
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newBooked));
+
+      updateSelectedCount();
+      alert('Бронирование сохранено.');
+    });
+
+    // Начальная инициализация счётчика
+    updateSelectedCount();
+  </script>
+</body>
+</html>
